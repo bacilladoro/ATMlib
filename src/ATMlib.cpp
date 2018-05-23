@@ -109,7 +109,7 @@ static inline const byte *getTrackPointer(byte track) {
 
 
 void ATMsynth::play(const byte *song) {
-
+  cia_count = 1;
   // cleanUp stuff first
   memset(channel, 0, sizeof(channel));
   ChannelActiveMute = 0b11110000;
