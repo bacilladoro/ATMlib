@@ -1,6 +1,10 @@
 #include "ATMlib.h"
 
-ATMLIB_CONSTRUCT_ISR(OCR4A)
+#ifndef AB_ALTERNATE_WIRING
+  ATMLIB_CONSTRUCT_ISR(OCR4A)
+#else
+  ATMLIB_CONSTRUCT_ISR(OCR4A,OCR4D)
+#endif
 
 byte trackCount;
 byte tickRate;
@@ -123,6 +127,10 @@ void ATMsynth::play(const byte *song) {
   TCCR4B = 0b00000001;    // 62500Hz
   OCR4C  = 0xFF;          // Resolution to 8-bit (TOP=0xFF)
   OCR4A  = 0x80;
+#ifdef AB_ALTERNATE_WIRING
+  TCCR4C = 0b01000101;
+  OCR4D  = 0x80;
+#endif  
   TIMSK4 = 0b00000100;
 
 
