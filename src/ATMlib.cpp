@@ -1,11 +1,15 @@
 #include "ATMlib.h"
 
+#ifdef SLIMBOY
+  ATMLIB_CONSTRUCT_ISR(OCR2A)
+#else
 #ifndef AB_ALTERNATE_WIRING
   ATMLIB_CONSTRUCT_ISR(OCR4A)
 #else
   ATMLIB_CONSTRUCT_ISR(OCR4A,OCR4D)
 #endif
-
+#endif
+  
 byte trackCount;
 byte tickRate;
 const word *trackList;
@@ -109,7 +113,12 @@ static inline const byte *getTrackPointer(byte track) {
 
 
 void ATMsynth::play(const byte *song) {
+#ifdef SLIMBOY
+  TIMSK2 = 0b00000000;// ensure interrupt is disabled
+#else
   TIMSK4 = 0b00000000;// ensure interrupt is disabled
+#endif
+  
   cia_count = 1;
   // cleanUp stuff first
   memset(channel, 0, sizeof(channel));
@@ -124,6 +133,14 @@ void ATMsynth::play(const byte *song) {
   osc[3].freq = 0x0001; // Seed LFSR
   channel[3].freq = 0x0001; // xFX
 
+#ifdef SLIMBOY
+  //  TCCR2A = 0b00100011; // Fast-PWM 8-bit (COM2B1, WGM21, WGM20)
+  TCCR2A = bit(WGM20) | bit(COM2A1); // Fast-PWM, clear on compare match
+  TCCR2B = bit(WGM22) | bit(CS20); // 62500Hz
+  TIFR2 =  bit(TOV2);
+  
+  OCR2A = 0x80;
+#else
   TCCR4A = 0b01000010;    // Fast-PWM 8-bit
   TCCR4B = 0b00000001;    // 62500Hz
   OCR4C  = 0xFF;          // Resolution to 8-bit (TOP=0xFF)
@@ -132,7 +149,8 @@ void ATMsynth::play(const byte *song) {
   TCCR4C = 0b01000101;
   OCR4D  = 0x80;
 #endif  
-
+#endif
+  
   // Load a melody stream and start grinding samples
   // Read track count
   trackCount = pgm_read_byte(song++);
@@ -144,19 +162,31 @@ void ATMsynth::play(const byte *song) {
   for (unsigned n = 0; n < 4; n++) {
     channel[n].ptr = getTrackPointer(pgm_read_byte(song++));
   }
+#ifdef SLIMBOY
+  TIMSK2 = 0b00000001;// enable interrupt as last  
+#else
   TIMSK4 = 0b00000100;// enable interrupt as last
+#endif
 }
 
 // Stop playing, unload melody
 void ATMsynth::stop() {
+#ifdef SLIMBOY
+  TIMSK2 = 0; // Disable interrupt
+#else
   TIMSK4 = 0; // Disable interrupt
+#endif
   memset(channel, 0, sizeof(channel));
   ChannelActiveMute = 0b11110000;
 }
 
 // Start grinding samples or Pause playback
 void ATMsynth::playPause() {
+#ifdef SLIMBOY
+  TIMSK2 = TIMSK2 ^ 0b00000001; // toggle disable/enable interrupt
+#else
   TIMSK4 = TIMSK4 ^ 0b00000100; // toggle disable/enable interrupt
+#endif
 }
 
 // Toggle mute on/off on a channel, so it can be used for sound effects
@@ -169,11 +199,14 @@ void ATMsynth::unMuteChannel(byte ch) {
   ChannelActiveMute &= (~(1 << 0 ));
 }
 
+volatile uint16_t cnt = 0;
 
 __attribute__((used))
 void ATM_playroutine() {
   ch_t *ch;
-
+  //  OCR2A++;
+  cnt++;
+  
   // for every channel start working
   for (byte n = 0; n < 4; n++)
   {
@@ -421,7 +454,11 @@ void ATM_playroutine() {
       else
       {
         memset(channel, 0, sizeof(channel));
+#ifdef SLIMBOY
+        TIMSK2 = 0; // Disable interrupt
+#else
         TIMSK4 = 0; // Disable interrupt
+#endif	
       }
     }
   }

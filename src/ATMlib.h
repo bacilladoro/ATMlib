@@ -4,6 +4,11 @@
 #include <inttypes.h>
 #include <Arduino.h>
 
+#ifdef __AVR_ATmega328P__
+#warning SLIMBOY!
+#define SLIMBOY
+#endif
+
 #define CH_ZERO             0
 #define CH_ONE              1
 #define CH_TWO              2
@@ -51,14 +56,17 @@ extern osc_t osc[4];
 uint16_t read_vle(const byte **pp);
 static inline const byte *getTrackPointer(byte track);
 
-
+#ifdef SLIMBOY
+#define TIMER_OVF_vect TIMER2_OVF_vect
+#else
+#define TIMER_OVF_vect TIMER4_OVF_vect
+#endif
 
 extern void ATM_playroutine() asm("ATM_playroutine");
-
 #ifndef AB_ALTERNATE_WIRING
 #define ATMLIB_CONSTRUCT_ISR(TARGET_REGISTER) \
 uint16_t __attribute__((used)) cia, __attribute__((used)) cia_count; \
-ISR(TIMER4_OVF_vect, ISR_NAKED) { \
+ISR(TIMER_OVF_vect, ISR_NAKED) { \
   asm volatile( \
                 "push r2                                          " "\n\t" \
                 "in   r2,                    __SREG__             " "\n\t" \
