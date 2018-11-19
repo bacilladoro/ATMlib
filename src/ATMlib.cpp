@@ -134,11 +134,9 @@ void ATMsynth::play(const byte *song) {
   channel[3].freq = 0x0001; // xFX
 
 #ifdef SLIMBOY
-  //  TCCR2A = 0b00100011; // Fast-PWM 8-bit (COM2B1, WGM21, WGM20)
-  TCCR2A = bit(WGM20) | bit(COM2A1); // Fast-PWM, clear on compare match
-  TCCR2B = bit(WGM22) | bit(CS20); // 62500Hz
+  TCCR2A = bit(WGM21) | bit(WGM20) | bit(COM2A1); // Fast-PWM, clear on compare match
+  TCCR2B = bit(CS20); // 62500Hz
   TIFR2 =  bit(TOV2);
-  
   OCR2A = 0x80;
 #else
   TCCR4A = 0b01000010;    // Fast-PWM 8-bit
@@ -199,13 +197,9 @@ void ATMsynth::unMuteChannel(byte ch) {
   ChannelActiveMute &= (~(1 << 0 ));
 }
 
-volatile uint16_t cnt = 0;
-
 __attribute__((used))
 void ATM_playroutine() {
   ch_t *ch;
-  //  OCR2A++;
-  cnt++;
   
   // for every channel start working
   for (byte n = 0; n < 4; n++)
