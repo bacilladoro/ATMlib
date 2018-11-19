@@ -134,7 +134,7 @@ void ATMsynth::play(const byte *song) {
   channel[3].freq = 0x0001; // xFX
 
 #ifdef SLIMBOY
-  TCCR2A = bit(WGM21) | bit(WGM20) | bit(COM2A1); // Fast-PWM, clear on compare match
+  TCCR2A = bit(WGM20) | bit(COM2A1); // Phase correct PWM
   TCCR2B = bit(CS20); // 62500Hz
   TIFR2 =  bit(TOV2);
   OCR2A = 0x80;
